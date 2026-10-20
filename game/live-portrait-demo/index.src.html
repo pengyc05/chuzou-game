@@ -1,0 +1,125 @@
+<title>小路 · 动态立绘</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one character card (game UI option C) beside a short list of what moves; stacks on phones. Single warm look over the village palette. */
+:root{
+  --ground:#e9e1cf; --cream:#fff7e6; --rim:#5e4027; --ink:#4a3523; --ink-soft:#7a5d40; --leaf:#8fbf6a; --leaf-dk:#5e7d44;
+  --f-serif:"Noto Serif SC","Songti SC","STSong",serif; --f-sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  color-scheme:light;
+}
+html,body{margin:0;min-height:100%}
+body{background:var(--ground);background-image:radial-gradient(ellipse at 30% 0%,#f5eedd,transparent 60%);color:var(--ink);font-family:var(--f-sans)}
+.wrap{max-width:1040px;margin:0 auto;padding-block:40px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;justify-content:center}
+.card{position:relative;width:min(440px,100%);flex:none}
+.frame{position:relative;background:var(--cream);border:3px solid var(--rim);border-radius:24px;box-shadow:0 6px 0 rgba(60,38,20,.3);padding:14px 14px 18px}
+.tag{position:absolute;left:26px;top:-20px;z-index:3;padding:5px 22px 7px;border-radius:12px;border:3px solid var(--rim);background-color:#9a6b43;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 2px,transparent 2px,transparent 9px),linear-gradient(180deg,#a8774c,#86592f);color:#fff4dd;font-family:var(--f-serif);font-size:22px;letter-spacing:4px;text-shadow:0 2px 0 var(--rim)}
+.art{position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;border:2px solid var(--rim);background:#cfe3c4;max-width:100%}
+.art .bg{position:absolute;inset:-6%;background-size:cover;background-position:30% 40%;filter:blur(1.6px) saturate(1.05);transform:translate3d(var(--px,0),var(--py,0),0) scale(1.04);transition:transform .25s ease-out}
+.art .wash{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,250,235,.0) 40%,rgba(255,247,230,.35) 100%)}
+.art canvas{position:absolute;left:-8%;top:1%;width:116%;height:116%;display:block}
+.meta{display:flex;justify-content:space-between;align-items:baseline;margin:14px 6px 6px}
+.meta b{font-family:var(--f-serif);font-size:18px}
+.meta span{font-size:13px;color:var(--ink-soft)}
+.line{min-height:52px;margin:0 6px;font-size:16px;line-height:1.65}
+.btns{display:flex;gap:10px;margin:12px 6px 0;flex-wrap:wrap}
+button{font-family:var(--f-sans);font-size:15px;font-weight:700;height:44px;padding:0 20px;border-radius:22px;border:3px solid var(--rim);background:#fff;color:var(--ink);box-shadow:0 4px 0 rgba(60,38,20,.3);cursor:pointer}
+button.go{background:var(--leaf);color:#2f3a1f;box-shadow:0 4px 0 var(--leaf-dk)}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(60,38,20,.3)}
+button:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
+.side{flex:1 1 300px;max-width:440px;min-width:0}
+.side h1{font-family:var(--f-serif);font-size:30px;margin:6px 0 10px;text-wrap:balance}
+.side p{line-height:1.75;margin:0 0 18px;color:var(--ink-soft)}
+.list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.list li{display:flex;gap:12px;align-items:baseline;background:var(--cream);border:2px solid #d9c9aa;border-radius:14px;padding:10px 14px;line-height:1.55}
+.list li b{flex:none;min-width:5.5em;font-family:var(--f-serif)}
+.note{font-size:13px;color:var(--ink-soft);margin-top:16px;line-height:1.7}
+@media (prefers-reduced-motion:reduce){.art .bg{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <div class="tag">小路</div>
+    <div class="frame">
+      <div class="art" id="art"><div class="bg" id="bg"></div><canvas id="cv" width="720" height="1080" aria-label="小路的动态立绘"></canvas><div class="wash"></div></div>
+      <div class="meta"><b>乡野村 · 示例角色</b><span>人物卡</span></div>
+      <div class="line" id="line">你也是从城里来的吧？我看你一直在看那座桥。</div>
+      <div class="btns"><button class="go" id="talk">让她说句话</button><button id="blinkBtn">眨眼</button><button id="calm">安静看镜头</button></div>
+    </div>
+  </div>
+  <div class="side">
+    <h1>一张图，动起来</h1>
+    <p>原图是你用 Gemini 生成的那张小路半身像，没有重画。我用代码把它拆成帽子、头发、脸、眼睛、身体几个部分，再分别驱动。把鼠标移到卡片上试试。</p>
+    <ul class="list">
+      <li><b>看向你</b>头和眼睛跟着鼠标转，带一点立体的视差</li>
+      <li><b>眨眼</b>每隔几秒自然眨一下，偶尔连眨两下</li>
+      <li><b>呼吸</b>胸口和肩膀随呼吸轻轻起伏</li>
+      <li><b>头发和帽子</b>发梢随风摆，转头时会慢半拍跟上</li>
+      <li><b>说话</b>嘴巴开合配合字幕逐字出现</li>
+    </ul>
+    <p class="note">这是接近 Live2D 的做法，不是官方 Live2D。原图分辨率不高，近看会有点软；用高清原图，再配一张闭眼版和一张张嘴版，效果会更好。</p>
+  </div>
+</div>
+
+<script>
+'use strict';
+/*ASSETS*/
+const $=s=>document.querySelector(s);
+$('#bg').style.backgroundImage=`url(${A.bg})`;
+const cv=$('#cv');const gl=cv.getContext('webgl',{premultipliedAlpha:true,alpha:true,antialias:false});
+const VS=`attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}`;
+const FS=`precision highp float;varying vec2 uv;uniform sampler2D T,M1,M2;uniform vec2 R;uniform float time,tilt,breath,blink,mouth,hairLag;uniform vec2 turn,look;
+const vec2 PIV=vec2(452.,575.);const vec2 E1=vec2(428.,386.);const vec2 E2=vec2(524.,385.);const vec2 ER=vec2(13.,15.);const vec2 MO=vec2(466.,480.);
+mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+float ell(vec2 q,vec2 r){return length(q/r);}
+void main(){vec2 p=uv*R;vec4 m1=texture2D(M1,uv),m2=texture2D(M2,uv);vec2 o=vec2(0.);
+ float hw=m1.r;o+=(rot(tilt*hw)*(p-PIV)+PIV)-p;
+ o.x+=turn.x*(m2.b*16.+hw*5.)+turn.x*m2.g*4.;o.y+=turn.y*(m2.b*11.+hw*4.)-turn.y*m2.g*3.;
+ o.y+=sin(time*2.3)*1.2*m2.r;o.x+=sin(time*1.9+.7)*1.6*m2.r;
+ o.x+=(sin(time*1.6-p.y*.012)*3.2+hairLag*26.)*m1.g;o.y+=abs(sin(time*1.6-p.y*.012))*.8*m1.g;
+ o.y-=breath*m1.b*5.5;o.x+=(p.x-460.)*breath*m1.b*.006;
+ for(int i=0;i<2;i++){vec2 c=i==0?E1:E2;c+=o;float e=1.-smoothstep(.75,1.,ell(p-c,ER*1.05));o+=look*4.5*e*(1.-blink);}
+ vec2 s=p-o;vec4 col=texture2D(T,s/R);
+ for(int i=0;i<2;i++){vec2 c=i==0?E1:E2;vec2 er=i==0?ER:vec2(11.,15.);vec2 q=s-c;vec2 r=er*vec2(1.9,1.8);float d=ell(q,r);
+  if(d<1.&&blink>.02){float f=1.-smoothstep(.86,1.,d);vec3 o0=col.rgb/max(col.a,.001);float hairy=step(.18,o0.r-o0.b)*step(dot(o0,vec3(.3,.59,.11)),.62)*step(o0.g,o0.r*.86);hairy*=step(1.15,ell(q,er*vec2(1.05,1.)));f*=(1.-hairy)*step(.5,col.a);float xr=q.x/(er.x*1.3);
+   float top=-er.y*1.75;float shut=er.y*(.08+.32*(1.-xr*xr));float lidY=mix(top,shut,smoothstep(0.,1.,blink));
+   vec3 skin=texture2D(T,(c+vec2(q.x*.6-(i==1?6.:0.),er.y*2.6+abs(q.y)*.15))/R).rgb;
+   float cover=step(q.y,lidY);cover=max(cover,smoothstep(.82,.95,blink));col.rgb=mix(col.rgb,skin*col.a,cover*f);
+   float w=mix(1.,1.7,blink);float lash=(1.-smoothstep(w*.6,w*1.2,abs(q.y-lidY)))*smoothstep(.05,.3,blink)*(1.-smoothstep(1.,1.2,abs(xr)*1.05));
+   col.rgb=mix(col.rgb,vec3(.25,.16,.12)*col.a,lash*(1.-hairy));}}
+ if(mouth>.01){vec2 q=s-MO;float d=ell(q,vec2(9.+mouth*3.,1.2+mouth*7.));if(d<1.){col.rgb=mix(col.rgb,vec3(.55,.26,.24)*col.a,1.-smoothstep(.7,1.,d));
+   float t=ell(q-vec2(0.,mouth*3.5),vec2(5.5,3.*mouth));col.rgb=mix(col.rgb,vec3(.86,.5,.48)*col.a,(1.-smoothstep(.6,1.,t))*step(.2,mouth));}}
+ gl_FragColor=col;}`;
+function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(x));return x}
+const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);gl.useProgram(pr);
+const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const loc=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+const U={};for(const n of['T','M1','M2','R','time','tilt','breath','blink','mouth','hairLag','turn','look'])U[n]=gl.getUniformLocation(pr,n);
+function tex(src,unit,premul){return new Promise(res=>{const im=new Image();im.onload=()=>{const t=gl.createTexture();gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,premul);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,premul?gl.BROWSER_DEFAULT_WEBGL:gl.NONE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);res()};im.src=src})}
+gl.uniform1i(U.T,0);gl.uniform1i(U.M1,1);gl.uniform1i(U.M2,2);gl.uniform2f(U.R,720,1080);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const S={turn:[0,0],tTurn:[0,0],look:[0,0],tLook:[0,0],tilt:0,tTilt:0,blink:0,blinkT:1.5,blinkPh:-1,dbl:false,mouth:0,talkT:0,lag:0,prevTurn:0,lastMove:-9,calm:false};
+const art=$('#art');
+addEventListener('pointermove',e=>{const r=art.getBoundingClientRect();const nx=clamp(((e.clientX-r.left)/r.width-.5)*2,-1.6,1.6),ny=clamp(((e.clientY-r.top)/r.height-.38)*2,-1.6,1.6);
+  S.tTurn=[clamp(nx*.55,-.7,.7),clamp(ny*.45,-.5,.5)];S.tLook=[clamp(nx*.9,-1,1),clamp(ny*.6,-.8,.8)];S.tTilt=-nx*.035;S.lastMove=t;S.calm=false;
+  $('#bg').style.setProperty('--px',(-nx*6)+'px');$('#bg').style.setProperty('--py',(-ny*4)+'px')});
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+const lines=['你也是从城里来的吧？我看你一直在看那座桥。','桥那边是我们学校，下课铃一响，全村都听得见。','我想当摄影师，可我们这儿只有老师有相机。','你要是明天还在，我带你去山顶看日出。'];let li=0,typing=null;
+function talk(){li=(li+1)%lines.length;const s=lines[li];let k=0;clearInterval(typing);S.talkT=s.length*.075+.3;typing=setInterval(()=>{k++;$('#line').textContent=s.slice(0,k);if(k>=s.length)clearInterval(typing)},75)}
+$('#talk').onclick=talk;$('#blinkBtn').onclick=()=>{S.blinkPh=0};$('#calm').onclick=()=>{S.calm=true;S.tTurn=[0,0];S.tLook=[0,0];S.tTilt=0;$('#bg').style.setProperty('--px','0px');$('#bg').style.setProperty('--py','0px')};
+let t=0,last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
+  if(!S.calm&&t-S.lastMove>3.5){const w=t*.23;S.tTurn=[Math.sin(w*1.3)*.35+Math.sin(w*.7)*.15,Math.sin(w*.9+1)*.18];S.tLook=[S.tTurn[0]*1.3,S.tTurn[1]];S.tTilt=Math.sin(w*.8)*.03}
+  const k=1-Math.pow(.004,dt),ke=1-Math.pow(.0005,dt);for(let i=0;i<2;i++){S.turn[i]+=(S.tTurn[i]-S.turn[i])*k;S.look[i]+=(S.tLook[i]-S.look[i])*ke}S.tilt+=(S.tTilt-S.tilt)*k;
+  const vel=(S.turn[0]-S.prevTurn)/Math.max(dt,1e-3);S.prevTurn=S.turn[0];S.lag+=(clamp(-vel*.08,-.5,.5)-S.lag)*(1-Math.pow(.02,dt));
+  S.blinkT-=dt;if(S.blinkT<=0&&S.blinkPh<0){S.blinkPh=0;S.dbl=Math.random()<.2;S.blinkT=2.4+Math.random()*3}
+  if(S.blinkPh>=0){S.blinkPh+=dt/.16;S.blink=S.blinkPh<1?S.blinkPh:Math.max(0,2-S.blinkPh);if(S.blinkPh>=2){S.blinkPh=S.dbl?0:-1;S.dbl=false;S.blink=0}}
+  if(S.talkT>0){S.talkT-=dt;S.mouth=Math.max(0,Math.sin(t*17)*.5+Math.sin(t*11.3)*.4+.2)}else S.mouth*=Math.pow(.001,dt);
+  const m=reduce?.25:1;if(window.__fb!=null)S.blink=window.__fb;if(window.__fm!=null)S.mouth=window.__fm;
+  gl.viewport(0,0,720,1080);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform1f(U.time,t*m);gl.uniform1f(U.tilt,S.tilt*m);gl.uniform1f(U.breath,(Math.sin(t*1.5)*.5+.5)*m);gl.uniform1f(U.blink,S.blink);gl.uniform1f(U.mouth,S.mouth);gl.uniform1f(U.hairLag,S.lag*m);
+  gl.uniform2f(U.turn,S.turn[0]*m,S.turn[1]*m);gl.uniform2f(U.look,S.look[0],S.look[1]);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);requestAnimationFrame(frame)}
+Promise.all([tex(A.girl,0,true),tex(A.m1,1,false),tex(A.m2,2,false)]).then(()=>requestAnimationFrame(frame));
+window.__S=S;window.__talk=talk;
+</script>
