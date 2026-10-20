@@ -45,7 +45,7 @@ button:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
       <div class="art" id="art"><div class="bg" id="bg"></div><canvas id="cv" width="720" height="1080" aria-label="小路的动态立绘"></canvas><div class="wash"></div></div>
       <div class="meta"><b>乡野村 · 示例角色</b><span>人物卡</span></div>
       <div class="line" id="line">你也是从城里来的吧？我看你一直在看那座桥。</div>
-      <div class="btns"><button class="go" id="talk">让她说句话</button><button id="blinkBtn">眨眼</button><button id="calm">安静看镜头</button></div>
+      <div class="btns"><button class="go" id="talk">让她说句话</button><button id="blinkBtn">眨眼</button><button id="calm">安静看镜头</button><button id="mute" aria-pressed="false">关掉声音</button></div>
     </div>
   </div>
   <div class="side">
@@ -56,7 +56,7 @@ button:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
       <li><b>眨眼</b>每隔几秒自然眨一下，偶尔连眨两下</li>
       <li><b>呼吸</b>胸口和肩膀随呼吸轻轻起伏</li>
       <li><b>头发和帽子</b>发梢随风摆，转头时会慢半拍跟上</li>
-      <li><b>说话</b>嘴巴开合配合字幕逐字出现</li>
+      <li><b>说话</b>字幕逐字出现，每个字配一个合成音节，嘴巴跟着音节开合</li>
     </ul>
     <p class="note">这是接近 Live2D 的做法，不是官方 Live2D。原图分辨率不高，近看会有点软；用高清原图，再配一张闭眼版和一张张嘴版，效果会更好。</p>
   </div>
@@ -80,7 +80,7 @@ void main(){vec2 p=uv*R;vec4 m1=texture2D(M1,uv),m2=texture2D(M2,uv);vec2 o=vec2
  o.x+=(sin(time*1.6-p.y*.012)*3.2+hairLag*26.)*m1.g;o.y+=abs(sin(time*1.6-p.y*.012))*.8*m1.g;
  o.y-=breath*m1.b*5.5;o.x+=(p.x-460.)*breath*m1.b*.006;
  for(int i=0;i<2;i++){vec2 c=i==0?E1:E2;c+=o;float e=1.-smoothstep(.75,1.,ell(p-c,ER*1.05));o+=look*4.5*e*(1.-blink);}
- vec2 s=p-o;vec4 col=texture2D(T,s/R);
+ vec2 s0=p-o;vec2 jq=s0-(MO+vec2(0.,1.));float jaw=mouth*4.5*smoothstep(-1.,4.,jq.y)*exp(-dot(jq*vec2(1.,.8),jq*vec2(1.,.8))/1500.);vec2 s=s0-vec2(0.,jaw);vec4 col=texture2D(T,s/R);
  for(int i=0;i<2;i++){vec2 c=i==0?E1:E2;vec2 er=i==0?ER:vec2(11.,15.);vec2 q=s-c;vec2 r=er*vec2(1.9,1.8);float d=ell(q,r);
   if(d<1.&&blink>.02){float f=1.-smoothstep(.86,1.,d);vec3 o0=col.rgb/max(col.a,.001);float hairy=step(.18,o0.r-o0.b)*step(dot(o0,vec3(.3,.59,.11)),.62)*step(o0.g,o0.r*.86);hairy*=step(1.15,ell(q,er*vec2(1.05,1.)));f*=(1.-hairy)*step(.5,col.a);float xr=q.x/(er.x*1.3);
    float top=-er.y*1.75;float shut=er.y*(.08+.32*(1.-xr*xr));float lidY=mix(top,shut,smoothstep(0.,1.,blink));
@@ -88,8 +88,10 @@ void main(){vec2 p=uv*R;vec4 m1=texture2D(M1,uv),m2=texture2D(M2,uv);vec2 o=vec2
    float cover=step(q.y,lidY);cover=max(cover,smoothstep(.82,.95,blink));col.rgb=mix(col.rgb,skin*col.a,cover*f);
    float w=mix(1.,1.7,blink);float lash=(1.-smoothstep(w*.6,w*1.2,abs(q.y-lidY)))*smoothstep(.05,.3,blink)*(1.-smoothstep(1.,1.2,abs(xr)*1.05));
    col.rgb=mix(col.rgb,vec3(.25,.16,.12)*col.a,lash*(1.-hairy));}}
- if(mouth>.01){vec2 q=s-MO;float d=ell(q,vec2(9.+mouth*3.,1.2+mouth*7.));if(d<1.){col.rgb=mix(col.rgb,vec3(.55,.26,.24)*col.a,1.-smoothstep(.7,1.,d));
-   float t=ell(q-vec2(0.,mouth*3.5),vec2(5.5,3.*mouth));col.rgb=mix(col.rgb,vec3(.86,.5,.48)*col.a,(1.-smoothstep(.6,1.,t))*step(.2,mouth));}}
+ if(mouth>.01){vec2 q=s0-MO;float w=10.+mouth*1.5;float xr=q.x/w;
+   if(abs(xr)<1.){float top=-.014*q.x*q.x+.4;float h=mouth*6.6*(1.-xr*xr);float bot=top+h;
+    float a=smoothstep(top-.6,top+.4,q.y)*(1.-smoothstep(bot-.6,bot+.4,q.y))*(1.-smoothstep(.8,1.,abs(xr)));
+    vec3 inner=mix(vec3(.42,.17,.17),vec3(.78,.42,.42),smoothstep(top+h*.45,bot,q.y));col.rgb=mix(col.rgb,inner*col.a,a*.92);}}
  gl_FragColor=col;}`;
 function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(x));return x}
 const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);gl.useProgram(pr);
@@ -106,8 +108,16 @@ addEventListener('pointermove',e=>{const r=art.getBoundingClientRect();const nx=
   $('#bg').style.setProperty('--px',(-nx*6)+'px');$('#bg').style.setProperty('--py',(-ny*4)+'px')});
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 const lines=['你也是从城里来的吧？我看你一直在看那座桥。','桥那边是我们学校，下课铃一响，全村都听得见。','我想当摄影师，可我们这儿只有老师有相机。','你要是明天还在，我带你去山顶看日出。'];let li=0,typing=null;
-function talk(){li=(li+1)%lines.length;const s=lines[li];let k=0;clearInterval(typing);S.talkT=s.length*.075+.3;typing=setInterval(()=>{k++;$('#line').textContent=s.slice(0,k);if(k>=s.length)clearInterval(typing)},75)}
-$('#talk').onclick=talk;$('#blinkBtn').onclick=()=>{S.blinkPh=0};$('#calm').onclick=()=>{S.calm=true;S.tTurn=[0,0];S.tLook=[0,0];S.tTilt=0;$('#bg').style.setProperty('--px','0px');$('#bg').style.setProperty('--py','0px')};
+const VO={ctx:null,on:true,base:430};
+function voInit(){if(VO.ctx)return;try{VO.ctx=new (window.AudioContext||window.webkitAudioContext)();VO.out=VO.ctx.createGain();VO.out.gain.value=.9;VO.out.connect(VO.ctx.destination)}catch(e){VO.ctx=null}}
+const FORM=[[800,1150],[400,1600],[300,2300],[450,800],[350,700]];
+function syllable(ch,q){const A=VO.ctx;if(!A||!VO.on)return;const c=ch.charCodeAt(0),t=A.currentTime;const f0=VO.base*(1+((c%7)-3)*.035)*(q?1.12:1);const fm=FORM[c%5];
+  const g=A.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.16,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+.085);g.connect(VO.out);
+  for(const [type,mul,vol] of[['sawtooth',1,1],['triangle',2,.4]]){const o=A.createOscillator();o.type=type;o.frequency.setValueAtTime(f0*mul,t);o.frequency.exponentialRampToValueAtTime(f0*mul*(q?1.08:.94),t+.08);
+    const v=A.createGain();v.gain.value=vol;o.connect(v);for(const [ff,qq] of[[fm[0],6],[fm[1],9]]){const bp=A.createBiquadFilter();bp.type='bandpass';bp.frequency.value=ff;bp.Q.value=qq;v.connect(bp);bp.connect(g)}o.start(t);o.stop(t+.1)}}
+function talk(){voInit();li=(li+1)%lines.length;const s=lines[li];const q=/？$/.test(s);let k=0;clearInterval(typing);typing=setInterval(()=>{const ch=s[k];k++;$('#line').textContent=s.slice(0,k);
+  if(ch&&!/[，。？！、…—\s]/.test(ch)){S.syl=1;syllable(ch,q&&k>s.length-4)}if(k>=s.length)clearInterval(typing)},85)}
+$('#talk').onclick=talk;$('#mute').onclick=()=>{VO.on=!VO.on;$('#mute').textContent=VO.on?'关掉声音':'打开声音';$('#mute').setAttribute('aria-pressed',String(!VO.on))};$('#blinkBtn').onclick=()=>{S.blinkPh=0};$('#calm').onclick=()=>{S.calm=true;S.tTurn=[0,0];S.tLook=[0,0];S.tTilt=0;$('#bg').style.setProperty('--px','0px');$('#bg').style.setProperty('--py','0px')};
 let t=0,last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
   if(!S.calm&&t-S.lastMove>3.5){const w=t*.23;S.tTurn=[Math.sin(w*1.3)*.35+Math.sin(w*.7)*.15,Math.sin(w*.9+1)*.18];S.tLook=[S.tTurn[0]*1.3,S.tTurn[1]];S.tTilt=Math.sin(w*.8)*.03}
@@ -115,7 +125,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
   const vel=(S.turn[0]-S.prevTurn)/Math.max(dt,1e-3);S.prevTurn=S.turn[0];S.lag+=(clamp(-vel*.08,-.5,.5)-S.lag)*(1-Math.pow(.02,dt));
   S.blinkT-=dt;if(S.blinkT<=0&&S.blinkPh<0){S.blinkPh=0;S.dbl=Math.random()<.2;S.blinkT=2.4+Math.random()*3}
   if(S.blinkPh>=0){S.blinkPh+=dt/.16;S.blink=S.blinkPh<1?S.blinkPh:Math.max(0,2-S.blinkPh);if(S.blinkPh>=2){S.blinkPh=S.dbl?0:-1;S.dbl=false;S.blink=0}}
-  if(S.talkT>0){S.talkT-=dt;S.mouth=Math.max(0,Math.sin(t*17)*.5+Math.sin(t*11.3)*.4+.2)}else S.mouth*=Math.pow(.001,dt);
+  S.syl=(S.syl||0)*Math.pow(.0005,dt);const mt=Math.min(1,S.syl*1.25);S.mouth+=(mt-S.mouth)*(1-Math.pow(1e-6,dt));
   const m=reduce?.25:1;if(window.__fb!=null)S.blink=window.__fb;if(window.__fm!=null)S.mouth=window.__fm;
   gl.viewport(0,0,720,1080);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
   gl.uniform1f(U.time,t*m);gl.uniform1f(U.tilt,S.tilt*m);gl.uniform1f(U.breath,(Math.sin(t*1.5)*.5+.5)*m);gl.uniform1f(U.blink,S.blink);gl.uniform1f(U.mouth,S.mouth);gl.uniform1f(U.hairLag,S.lag*m);
