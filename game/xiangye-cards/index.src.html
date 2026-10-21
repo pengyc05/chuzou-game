@@ -1,0 +1,324 @@
+<title>乡野村 · 卡牌版</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-window animated scene; option C "country boards" UI on top: hanging sign + season dial top-left, coin/stamina top-right, a hand of location cards along the bottom, dialogue board above the hand. Single look that sits over the painting. */
+:root{
+  --cream:#fff7e6; --rim:#5e4027; --ink:#4a3523; --ink-soft:#7a5d40; --leaf:#8fbf6a; --leaf-dk:#5e7d44; --coin:#e8b84a; --night:#14110e;
+  --f-serif:"Noto Serif SC","Songti SC","STSong","SimSun",serif; --f-sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--night)}
+body{font-family:var(--f-sans);color:var(--ink);user-select:none;-webkit-user-select:none}
+canvas{display:block}
+#scene,#fx,#prev{position:fixed;inset:0;width:100%;height:100%}
+#prev{pointer-events:none;opacity:0;transition:opacity 1.1s ease,filter 1.1s ease}
+#fx{pointer-events:none}
+#lu{position:fixed;right:max(4vw,calc(env(safe-area-inset-right,0px) + 12px));bottom:-14vh;height:86vh;aspect-ratio:2/3;max-width:56vw;opacity:0;transform:translateY(30px);transition:opacity .9s ease,transform .9s ease;cursor:pointer}
+#lu.on{opacity:1;transform:none}
+#lu canvas{width:100%;height:100%}
+.board{background:var(--cream);border:3px solid var(--rim);box-shadow:0 5px 0 rgba(60,38,20,.3)}
+.glass{background:rgba(255,247,230,.9);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.wood{background-color:#9a6b43;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 2px,transparent 2px,transparent 9px),linear-gradient(180deg,#a8774c,#86592f);border:3px solid var(--rim);color:#fff4dd}
+button{font-family:var(--f-sans);cursor:pointer}
+button:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
+
+#place{position:fixed;left:max(24px,calc(env(safe-area-inset-left,0px) + 16px));top:env(safe-area-inset-top,0px);display:flex;align-items:flex-start;gap:16px;z-index:5}
+.hang{display:flex;flex-direction:column;align-items:center;transform-origin:50% 0}
+.hang.swing{animation:swing 1.4s ease-out}
+@keyframes swing{0%{transform:rotate(7deg)}30%{transform:rotate(-5deg)}55%{transform:rotate(3deg)}80%{transform:rotate(-1deg)}100%{transform:none}}
+.ropes{display:flex;justify-content:space-around;width:70%}.ropes i{display:block;width:3px;height:22px;background:var(--rim)}
+.sign{padding:6px 22px 10px;border-radius:10px;box-shadow:0 6px 0 rgba(60,38,20,.35);text-align:center;min-width:120px}
+.sign small{display:block;font-size:12px;letter-spacing:4px;opacity:.85}
+.sign b{display:block;font-family:var(--f-serif);font-weight:600;font-size:30px;letter-spacing:5px;text-shadow:0 2px 0 var(--rim);white-space:nowrap}
+#dial{margin-top:20px;width:80px;height:80px;border-radius:50%;padding:0}
+#dial svg{display:block;margin:-3px}
+#when{margin-top:30px;display:flex;flex-direction:column;gap:2px;background:none;border:none;padding:0;text-align:left;color:#fff7e6;text-shadow:0 2px 4px rgba(40,25,10,.75)}
+#when b{font-family:var(--f-serif);font-size:21px;font-weight:600}
+#when small{font-size:13px}
+#chips{position:fixed;right:max(24px,calc(env(safe-area-inset-right,0px) + 16px));top:calc(22px + env(safe-area-inset-top,0px));display:flex;gap:10px;z-index:5}
+.chip{height:46px;border-radius:23px;display:flex;align-items:center;gap:10px;box-sizing:border-box;color:var(--ink)}
+.coin{width:30px;height:30px;border-radius:50%;background:var(--coin);border:2px solid #9a6b2a;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#7a4e14}
+.chip .num{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.chip .bar{width:90px;height:14px;border-radius:7px;background:#eadcc2;border:2px solid var(--rim);box-sizing:border-box;overflow:hidden}.chip .bar i{display:block;height:100%;background:var(--leaf)}
+.chip small{font-size:13px;color:var(--ink-soft)}
+#tools{position:fixed;right:max(24px,calc(env(safe-area-inset-right,0px) + 16px));top:calc(84px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:12px;z-index:5}
+#tools button{width:54px;height:54px;border-radius:16px;box-shadow:0 4px 0 rgba(60,38,20,.35);display:flex;align-items:center;justify-content:center;padding:0}
+#tools button[aria-pressed="true"]{filter:saturate(.3) brightness(.85)}
+
+#hand{position:fixed;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;align-items:flex-end;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:6;transition:transform .5s ease,opacity .5s ease}
+#hand.down{transform:translateY(120%);opacity:0;pointer-events:none}
+.card{position:relative;flex:none;width:118px;height:166px;margin:0 -6px;padding:0;border-radius:14px;border:3px solid var(--rim);background:var(--cream);box-shadow:0 5px 0 rgba(60,38,20,.35),0 10px 24px rgba(20,12,6,.3);display:flex;flex-direction:column;overflow:hidden;transition:transform .25s ease;text-align:left;color:var(--ink)}
+.card img{display:block;width:100%;height:84px;object-fit:cover;border-bottom:2px solid var(--rim)}
+.card b{font-family:var(--f-serif);font-size:16px;font-weight:600;margin:7px 9px 2px;letter-spacing:1px}
+.card span{font-size:11.5px;line-height:1.45;margin:0 9px;color:var(--ink-soft)}
+.card:hover,.card:focus-visible{transform:translateY(-14px) rotate(0deg)!important;z-index:2}
+.card.here{transform:translateY(-22px)!important;z-index:3;border-color:var(--leaf-dk);box-shadow:0 5px 0 var(--leaf-dk),0 12px 28px rgba(20,12,6,.35)}
+.card.here::after{content:"你在这里";position:absolute;top:6px;left:6px;padding:1px 8px;border-radius:9px;background:var(--leaf);border:2px solid var(--rim);font-size:11px;font-weight:700;color:#2f3a1f}
+.card .who{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:2px solid var(--rim);background:var(--cream) center/cover no-repeat}
+
+#dlg{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));width:min(920px,calc(100% - 32px));min-height:166px;display:none;z-index:7}
+#dlg .box{position:absolute;inset:18px 0 0 0;border-radius:26px}
+#dlg .tag{position:absolute;left:150px;top:0;padding:5px 20px 6px;border-radius:12px;font-family:var(--f-serif);font-size:20px;letter-spacing:4px}
+#dlg .face{position:absolute;left:18px;bottom:16px;width:116px;height:116px;border-radius:50%;border:4px solid var(--rim);box-shadow:0 0 0 4px var(--cream);background:var(--cream) 50% 30%/170% no-repeat}
+#dlg .txt{position:relative;margin:52px 30px 26px 160px;font-size:19px;line-height:1.7;font-weight:500;color:var(--ink);min-height:64px}
+#dlg.mono .tag,#dlg.mono .face{display:none}
+#dlg.mono .txt{margin-left:40px;font-family:var(--f-serif);font-weight:400;color:var(--ink-soft)}
+#dlg .opts{position:relative;display:flex;flex-wrap:wrap;gap:10px;margin:-10px 26px 22px 160px}
+#dlg.mono .opts{margin-left:40px}
+#dlg .opts button{height:44px;padding:0 20px;border-radius:22px;border:3px solid var(--rim);background:#fff;color:var(--ink);font-size:15px;font-weight:500;box-shadow:0 4px 0 rgba(60,38,20,.3)}
+#dlg .opts button:first-child{background:var(--leaf);color:#2f3a1f;font-weight:700;box-shadow:0 4px 0 var(--leaf-dk)}
+#dlg .next{position:absolute;right:22px;bottom:12px;font-size:13px;color:var(--ink-soft);animation:bob 1s infinite}
+@keyframes bob{50%{transform:translateY(3px)}}
+
+#talkTip{position:fixed;z-index:6;padding:7px 15px 7px 7px;border-radius:18px;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;transform:translate(-50%,-100%);cursor:pointer}
+#talkTip kbd{width:24px;height:24px;border-radius:8px;background:var(--rim);color:var(--cream);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:var(--f-sans)}
+#arrive{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);padding:12px 34px 14px;border-radius:14px;font-family:var(--f-serif);font-size:30px;letter-spacing:8px;opacity:0;transition:opacity .6s ease;pointer-events:none;z-index:8;text-shadow:0 2px 0 var(--rim);box-shadow:0 7px 0 rgba(60,38,20,.35)}
+#arrive small{display:block;font-family:var(--f-sans);font-size:13px;letter-spacing:3px;text-align:center;margin-top:2px;opacity:.85;text-shadow:none}
+#hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(196px + env(safe-area-inset-bottom,0px));padding:6px 16px;border-radius:16px;font-size:14px;z-index:5;transition:opacity 1s}
+
+#title{position:fixed;inset:0;z-index:10;background:var(--night) center/cover no-repeat;display:flex;align-items:center;padding:0 max(24px,8vw);box-sizing:border-box}
+#title .in{display:flex;flex-direction:column;align-items:flex-start}
+#title .ropes{width:auto;gap:150px;margin-left:46px;justify-content:flex-start}#title .ropes i{height:34px;width:4px}
+#title h1{margin:0;padding:14px 44px 18px;border-radius:16px;font-family:var(--f-serif);font-weight:600;font-size:clamp(56px,8vw,92px);letter-spacing:.25em;line-height:1;text-shadow:0 4px 0 var(--rim);box-shadow:0 8px 0 rgba(60,38,20,.35)}
+#title .panel{margin-top:22px;padding:22px 26px 24px;border-radius:24px;display:flex;flex-direction:column;gap:14px;max-width:26em}
+#title .sub{font-family:var(--f-serif);font-size:20px;font-weight:600;letter-spacing:.15em}
+#title p{margin:0;font-size:15px;line-height:1.8;color:var(--ink-soft)}
+#go{height:52px;padding:0 34px;border-radius:26px;background:var(--leaf);color:#2f3a1f;font-size:18px;font-weight:700;border:3px solid var(--rim);box-shadow:0 4px 0 var(--leaf-dk);align-self:flex-start}
+#go:disabled{background:#e4ddcc;box-shadow:0 4px 0 #a99e8a;color:#7a7060;cursor:default}
+#load{font-size:13px;color:var(--ink-soft)}
+#err{position:fixed;left:16px;right:16px;top:16px;padding:12px 16px;border-radius:14px;z-index:20}
+@media (max-width:820px){.card{width:92px;height:136px;margin:0 -10px}.card img{height:62px}.card span{display:none}#dial,#when{display:none}.sign b{font-size:22px}#hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}#dlg .txt,#dlg .opts{margin-left:24px}#dlg .face{width:56px;height:56px;top:0;bottom:auto}#dlg .tag{left:84px}#chips{top:calc(118px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));right:auto}.chip{height:38px}.chip .num{font-size:17px}.chip .bar{width:60px}#tools{top:calc(20px + env(safe-area-inset-top,0px))}#tools button{width:46px;height:46px}#dlg .txt{margin-top:58px}}
+@media (prefers-reduced-motion:reduce){#prev,#lu,#hand{transition:none}.hang.swing{animation:none}#dlg .next{animation:none}}
+</style>
+
+<canvas id="scene" aria-label="当前地点的风景"></canvas>
+<canvas id="prev" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="lu" role="button" tabindex="0" aria-label="和小路说话"><canvas id="luc" width="720" height="1080"></canvas></div>
+<div id="talkTip" class="board" hidden><kbd>E</kbd><span>和小路说话</span></div>
+
+<div id="hud" hidden>
+  <div id="place">
+    <div class="hang" id="hang"><div class="ropes"><i></i><i></i></div><div class="sign wood"><small>乡野村</small><b id="placeName">村口</b></div></div>
+    <button id="dial" class="board" aria-label="过一会儿"><svg width="80" height="80" viewBox="0 0 92 92" aria-hidden="true">
+      <path d="M46 46 L46 6 A40 40 0 0 1 86 46 Z" fill="#f4b6c2"/><path d="M46 46 L86 46 A40 40 0 0 1 46 86 Z" fill="#d6e6c0"/>
+      <path d="M46 46 L46 86 A40 40 0 0 1 6 46 Z" fill="#f0cf9c"/><path d="M46 46 L6 46 A40 40 0 0 1 46 6 Z" fill="#dfe8ee"/>
+      <circle cx="64" cy="27" r="6" fill="#fff" stroke="#c76b84" stroke-width="2"/><circle cx="64" cy="27" r="2" fill="#c76b84"/>
+      <circle cx="64" cy="64" r="6" fill="none" stroke="#7d9a62" stroke-width="2"/><path d="M64 54v-3M64 77v-3M54 64h-3M77 64h-3" stroke="#7d9a62" stroke-width="2" stroke-linecap="round"/>
+      <path d="M22 66 q8 -14 16 0 q-8 7 -16 0z" fill="#e0a25a" stroke="#a06a2a" stroke-width="1.6"/>
+      <path d="M27 20 v14 M20 27 h14 M22 22 l10 10 M32 22 l-10 10" stroke="#8aa0ae" stroke-width="1.8" stroke-linecap="round"/>
+      <g id="dialHand"><line x1="46" y1="46" x2="72" y2="20" stroke="#5e4027" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="46" cy="46" r="5" fill="#5e4027"/></svg></button>
+    <button id="when" aria-label="过一会儿"><b id="whenT">春 · 上午</b><small>第 1 天</small></button>
+  </div>
+  <div id="chips">
+    <div class="chip board" style="padding:0 18px 0 7px"><span class="coin">¥</span><span class="num">152</span></div>
+    <div class="chip board" style="padding:0 16px 0 10px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c5-3 8-7 8-12a4 4 0 0 0-8-1 4 4 0 0 0-8 1c0 5 3 9 8 12z" fill="#e48b6a" stroke="#8a3f27" stroke-width="1.6"/></svg><span class="bar"><i style="width:80%"></i></span><small>体力</small></div>
+  </div>
+  <div id="tools">
+    <button id="bTime" class="wood" aria-label="过一会儿"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></button>
+    <button id="bSnd" class="wood" aria-label="静音" aria-pressed="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+  </div>
+  <div id="hint" class="board">点下面的地点卡，去村里别的地方看看</div>
+  <div id="hand" role="list" aria-label="地点卡"></div>
+</div>
+<div id="arrive" class="wood"><span id="arriveT"></span><small id="arriveS"></small></div>
+<div id="dlg" class="mono"><div class="box board"></div><div class="tag wood">小路</div><div class="face" id="dface"></div><div class="txt" id="dt"></div><div class="opts" id="dopts"></div><div class="next" id="dnext">点击继续 ▸</div></div>
+<div id="title">
+  <div class="in">
+    <div class="ropes"><i></i><i></i></div>
+    <h1 class="wood">出走</h1>
+    <div class="panel board">
+      <div class="sub">第一章 · 乡野村</div>
+      <p>卡牌版第一个画面：九个地点都能去，每处风景都是会动的插画。去石桥小溪看看，有人在桥边等你。</p>
+      <button id="go" disabled>开始</button>
+      <div id="load">正在铺开村子……</div>
+    </div>
+  </div>
+</div>
+<div id="err" class="board" hidden></div>
+
+<script>
+'use strict';
+/*ASSETS*/
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function fail(m){const e=$('#err');e.hidden=false;e.textContent=m}
+const IMG_AR=1024/572;
+
+/* ---------------- scenes ---------------- */
+const SC=[
+ {key:'cunkou',name:'村口',desc:'老樟树下的木牌，进村和离开都在这里',fx:'pollen',rays:.5,shadow:0,fog:[0,0,0],rects:[]},
+ {key:'tiangeng',name:'田埂',desc:'水田映着天，油菜花开成一片',fx:'pollen',rays:0,shadow:.12,fog:[0,0,0],rects:[[670,330,725,450,4,.0025]]},
+ {key:'shiqiao',name:'石桥小溪',desc:'长着青苔的拱桥，溪边有洗衣石',fx:'petal',rays:0,shadow:0,fog:[0,0,0],rects:[],npc:true},
+ {key:'dahe',name:'大河',desc:'渡口拴着竹筏和小木船，河上有晨雾',fx:'birds',rays:0,shadow:0,fog:[.36,.52,.55],rects:[[700,420,866,498,1,.0028],[512,300,708,362,1,.0016]]},
+ {key:'xuexiao',name:'村小学',desc:'一排平房教室，操场边的樱花开了',fx:'petal',rays:0,shadow:.08,fog:[0,0,0],rects:[[556,146,584,206,2,.0035]]},
+ {key:'laojie',name:'老街小卖部',desc:'青石板路，晒着被单的杂货铺',fx:'dapple',rays:0,shadow:0,fog:[0,0,0],rects:[[322,262,472,338,3,.004],[480,252,614,302,3,.004],[212,318,244,366,4,.004],[452,296,484,348,4,.004],[496,328,524,380,4,.004],[604,252,632,304,4,.004]]},
+ {key:'zhulin',name:'山林竹林',desc:'穿过竹林往山上去的石阶',fx:'leaf',rays:1,shadow:0,fog:[.25,.5,.35],rects:[]},
+ {key:'laomiao',name:'村尾老庙',desc:'村子尽头的小土地庙和老树',fx:'smoke',rays:.25,shadow:0,fog:[0,0,0],rects:[[756,56,904,336,3,.003]],smoke:[509,470]},
+ {key:'shanding',name:'山顶',desc:'整个乡野村都在脚下',fx:'birds',rays:0,shadow:.16,fog:[.36,.6,.45],rects:[]}];
+const TOD=['上午','中午','傍晚','夜晚'];
+const ST={scene:0,tod:0,todF:0,metLu:false,busy:false};
+
+/* ---------------- scene renderer ---------------- */
+const cv=$('#scene');const gl=cv.getContext('webgl',{antialias:false,alpha:false,preserveDrawingBuffer:false});
+if(!gl)fail('这台电脑的浏览器没有开启 WebGL，画面无法显示。');
+const VS=`attribute vec2 p;varying vec2 vUv;void main(){vUv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}`;
+const FS=`precision highp float;varying vec2 vUv;uniform sampler2D img,msk;uniform float time,tod,rays,shadow;uniform vec3 fog;uniform vec2 sc,off,mouse;uniform vec4 uR[6];uniform vec2 uT[6];
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}
+vec3 grade(vec3 c,vec3 m,vec2 uv,float k){
+ if(k<.5)return c;
+ if(k<1.5){return mix(vec3(dot(c,vec3(.3,.59,.11))),c,1.08)*1.04;}
+ if(k<2.5){vec3 w=c*vec3(1.12,.84,.64)+vec3(.06,.015,0.);vec3 sky=mix(vec3(1.,.66,.46),vec3(.58,.44,.72),clamp(1.-uv.y*2.6,0.,1.));return mix(w,sky*(.75+.35*dot(c,vec3(.33))),m.b*.62);}
+ vec3 n=c*vec3(.26,.32,.52)+vec3(0.,.008,.03);vec3 sky=mix(vec3(.10,.14,.28),vec3(.02,.04,.12),clamp(1.-uv.y*2.4,0.,1.));n=mix(n,sky+c*.08,m.b*.85);
+ float st=step(.9965,hash(floor(uv*vec2(700.,390.))))*m.b*(.6+.4*sin(time*2.+hash(floor(uv*vec2(700.,390.)))*40.));n+=st;
+ float moon=smoothstep(.06,.0,length((uv-vec2(.8,.12))*vec2(1.79,1.)));n+=vec3(.9,.92,.8)*moon*m.b*.6+vec3(.12,.14,.2)*smoothstep(.35,.0,length((uv-vec2(.8,.12))*vec2(1.79,1.)))*m.b;
+ return n;}
+void main(){vec2 uv=(vUv-.5)*sc+.5+off;float depth=smoothstep(.2,1.,uv.y);uv+=mouse*(.003+.009*depth);
+ vec3 m=texture2D(msk,uv).rgb;vec2 d=vec2(0.);
+ d.x+=sin(time*.035)*.012*m.b+sin(time*.11)*.002*m.b;
+ float gust=.55+.45*sin(time*.37+uv.x*2.);
+ d.x+=(sin(time*1.5+uv.x*9.+uv.y*14.)*.0015+(fbm(uv*6.+vec2(time*.22,0.))-.5)*.0032)*m.g*gust;d.y+=sin(time*1.3+uv.x*11.)*.0005*m.g;
+ float wn=fbm(vec2(uv.x*42.,uv.y*120.)+vec2(time*.12,time*.55));d+=vec2((wn-.5)*.003,(fbm(uv*vec2(60.,160.)-time*.35)-.5)*.0035)*m.r;
+ for(int i=0;i<6;i++){vec4 r=uR[i];if(r.z>r.x){vec2 q=(uv-r.xy)/(r.zw-r.xy);float ins=smoothstep(0.,.15,q.x)*smoothstep(1.,.85,q.x)*smoothstep(-.05,.1,q.y)*smoothstep(1.,.85,q.y);float ty=uT[i].x,am=uT[i].y;float fi=float(i);
+  if(ty<1.5){d.y+=sin(time*1.1+fi)*am*ins;d.x+=sin(time*.7+fi)*am*.4*ins;}else if(ty<2.5){d.y+=sin(time*6.-q.x*9.)*am*q.x*ins;}else if(ty<3.5){d.x+=sin(time*1.7-q.y*3.+fi)*am*q.y*ins;}else{d.x+=sin(time*1.25+fi*1.7)*am*q.y*ins;}}}
+ vec3 col=texture2D(img,uv-d).rgb;
+ float sp=pow(noise(uv*vec2(260.,90.)+vec2(time*.7,time*.25)),16.);col+=sp*.6*m.r*(1.-step(2.5,tod)*.7);
+ if(shadow>0.){float cs=smoothstep(.5,.78,fbm(uv*2.6+vec2(time*.018,time*.004)));col*=1.-cs*shadow*(1.-m.b);}
+ if(fog.z>0.){float fy=smoothstep(fog.x,fog.x+.07,uv.y)*(1.-smoothstep(fog.y-.08,fog.y,uv.y));float fg=smoothstep(.35,.8,fbm(vec2(uv.x*3.2-time*.025,uv.y*7.)))*fy*fog.z;col=mix(col,vec3(.94,.95,.96),fg);}
+ if(rays>0.){vec2 v=uv-vec2(.22,-.12);float a=atan(v.x,v.y);float r=.5+.5*sin(a*36.+time*.25)*sin(a*15.-time*.17);col+=vec3(1.,.96,.82)*pow(r,3.)*rays*smoothstep(1.25,.15,length(v))*.28*(1.-step(2.5,tod));}
+ float t0=floor(tod),t1=min(t0+1.,3.),f=tod-t0;col=mix(grade(col,m,uv,t0),grade(col,m,uv,t1),f);
+ col*=1.-.28*pow(length((vUv-.5)*vec2(1.,.9))*1.25,2.2);
+ gl_FragColor=vec4(col,1.);}`;
+function mk(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(x));return x}
+const pr=gl.createProgram();gl.attachShader(pr,mk(gl.VERTEX_SHADER,VS));gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);gl.useProgram(pr);
+const qb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,qb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const pl=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
+const U={};for(const n of['img','msk','time','tod','rays','shadow','fog','sc','off','mouse','uR','uT'])U[n]=gl.getUniformLocation(pr,n);
+gl.uniform1i(U.img,0);gl.uniform1i(U.msk,1);
+function loadTex(src,linear=true){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);
+  for(const [k,v] of[[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);res(t)};im.onerror=()=>rej(new Error('图片加载失败'));im.src=src})}
+const TEX=[];
+function setScene(i){const s=SC[i];gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,TEX[i].img);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,TEX[i].msk);
+  const R=new Float32Array(24),T=new Float32Array(12);s.rects.forEach((r,k)=>{R.set([r[0]/1024,r[1]/572,r[2]/1024,r[3]/572],k*4);T.set([r[4],r[5]],k*2)});gl.uniform4fv(U.uR,R);gl.uniform2fv(U.uT,T);
+  gl.uniform1f(U.rays,s.rays);gl.uniform1f(U.shadow,s.shadow);gl.uniform3f(U.fog,s.fog[0],s.fog[1],s.fog[2])}
+let SCX=[1,1],OFF=[0,0];
+function resize(){const dpr=Math.min(devicePixelRatio||1,1.6);const w=innerWidth,h=innerHeight;for(const c of[cv,$('#prev'),$('#fx')]){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
+  const var_=w/h,OS=1.07;SCX=var_>IMG_AR?[1/OS,IMG_AR/var_/OS]:[var_/IMG_AR/OS,1/OS];gl.viewport(0,0,cv.width,cv.height);gl.uniform2f(U.sc,SCX[0],SCX[1]);FX.dpr=dpr}
+addEventListener('resize',resize);
+const MOUSE={x:0,y:0,tx:0,ty:0};addEventListener('pointermove',e=>{MOUSE.tx=(e.clientX/innerWidth-.5)*2;MOUSE.ty=(e.clientY/innerHeight-.5)*2});
+function imgToScreen(ix,iy){const u=ix/1024,v=iy/572;return[((u-.5-OFF[0])/SCX[0]+.5)*innerWidth,((v-.5-OFF[1])/SCX[1]+.5)*innerHeight]}
+
+/* ---------------- particles ---------------- */
+const fxc=$('#fx'),fx=fxc.getContext('2d');const FX={dpr:1,list:[],kind:'',t:0};
+function fxReset(){FX.list=[];FX.kind=SC[ST.scene].fx}
+function spawn(){const W=innerWidth,H=innerHeight,k=FX.kind,night=ST.tod>2.5;const r=Math.random;
+  if(night&&(SC[ST.scene].key==='tiangeng'||SC[ST.scene].key==='shiqiao'||SC[ST.scene].key==='cunkou')){if(FX.list.length<40)FX.list.push({t:'fly',x:r()*W,y:H*(.45+r()*.45),vx:(r()-.5)*12,vy:(r()-.5)*8,p:r()*6,l:9+r()*8});return}
+  if(k==='pollen'&&FX.list.length<55)FX.list.push({t:'pol',x:r()*W,y:H*(.35+r()*.65),vx:6+r()*10,vy:-4-r()*8,p:r()*6,l:10+r()*10,s:1+r()*1.8});
+  if(k==='petal'&&FX.list.length<60)FX.list.push({t:'pet',x:-20+r()*W*1.1,y:-20,vx:14+r()*22,vy:22+r()*26,p:r()*6,l:14,s:3+r()*3,rot:r()*6});
+  if(k==='leaf'&&FX.list.length<26)FX.list.push({t:'leaf',x:r()*W,y:-20,vx:6+r()*14,vy:26+r()*20,p:r()*6,l:16,s:5+r()*5,rot:r()*6});
+  if(k==='smoke'&&FX.list.length<70){const s=SC[ST.scene].smoke;const [x,y]=imgToScreen(s[0],s[1]);FX.list.push({t:'smk',x:x+(r()-.5)*6,y,vx:3+(r()-.5)*4,vy:-14-r()*8,p:r()*6,l:7+r()*3,a0:0,s:4})}
+  if(k==='birds'&&FX.list.length<5&&r()<.008)FX.list.push({t:'bird',x:-30,y:H*(.1+r()*.22),vx:28+r()*24,vy:(r()-.5)*4,p:r()*6,l:60,s:.7+r()*.6});
+  if(k==='dapple'&&FX.list.length<24)FX.list.push({t:'dap',x:r()*W,y:H*(.55+r()*.45),vx:0,vy:0,p:r()*6,l:4+r()*3,s:18+r()*30})}
+function fxStep(dt){const W=fxc.width,H=fxc.height,d=FX.dpr;fx.setTransform(d,0,0,d,0,0);fx.clearRect(0,0,W,H);FX.t+=dt;
+  for(let i=0;i<3;i++)spawn();const night=ST.tod>2.5,dusk=ST.tod>1.5&&ST.tod<2.6;
+  for(const p of FX.list){p.age=(p.age||0)+dt;const sw=Math.sin(FX.t*1.6+p.p);p.x+=(p.vx+sw*8)*dt;p.y+=p.vy*dt;const life=clamp(Math.min(p.age/1.2,(p.l-p.age)/1.5),0,1);
+    if(p.t==='pol'){fx.fillStyle=`rgba(255,248,210,${.55*life})`;fx.beginPath();fx.arc(p.x,p.y,p.s,0,7);fx.fill()}
+    else if(p.t==='pet'){p.rot+=dt*2;fx.save();fx.translate(p.x,p.y);fx.rotate(p.rot);fx.scale(1,.55+.45*Math.sin(FX.t*3+p.p));fx.fillStyle=`rgba(248,196,214,${.9*life})`;fx.beginPath();fx.ellipse(0,0,p.s,p.s*.6,0,0,7);fx.fill();fx.restore()}
+    else if(p.t==='leaf'){p.rot+=dt*1.6;fx.save();fx.translate(p.x,p.y);fx.rotate(p.rot);fx.fillStyle=`rgba(${120+p.p*10|0},${150+p.p*6|0},70,${.85*life})`;fx.beginPath();fx.ellipse(0,0,p.s*1.6,p.s*.4,0,0,7);fx.fill();fx.restore()}
+    else if(p.t==='smk'){p.s+=dt*5;const a=.16*life*(night?.6:1);const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s);g.addColorStop(0,`rgba(235,235,240,${a})`);g.addColorStop(1,'rgba(235,235,240,0)');fx.fillStyle=g;fx.fillRect(p.x-p.s,p.y-p.s,p.s*2,p.s*2)}
+    else if(p.t==='bird'){const f=Math.sin(FX.t*9+p.p)*4*p.s;fx.strokeStyle=`rgba(${night?200:60},${night?200:55},${night?210:60},${.7*life})`;fx.lineWidth=1.6;fx.beginPath();fx.moveTo(p.x-8*p.s,p.y-f);fx.quadraticCurveTo(p.x-3*p.s,p.y-3,p.x,p.y);fx.quadraticCurveTo(p.x+3*p.s,p.y-3,p.x+8*p.s,p.y-f);fx.stroke()}
+    else if(p.t==='dap'){const a=.1*life*(.5+.5*Math.sin(FX.t*1.3+p.p))*(night?0:1);const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s);g.addColorStop(0,`rgba(255,240,200,${a})`);g.addColorStop(1,'rgba(255,240,200,0)');fx.fillStyle=g;fx.fillRect(p.x-p.s,p.y-p.s,p.s*2,p.s*2)}
+    else if(p.t==='fly'){const a=life*(.5+.5*Math.sin(FX.t*3+p.p*3));const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,7);g.addColorStop(0,`rgba(230,255,150,${a})`);g.addColorStop(1,'rgba(230,255,150,0)');fx.fillStyle=g;fx.fillRect(p.x-7,p.y-7,14,14)}}
+  FX.list=FX.list.filter(p=>p.age<p.l&&p.y<innerHeight+40&&p.x<innerWidth+60)}
+
+/* ---------------- 小路: live portrait (shader shared with game/live-portrait-demo) ---------------- */
+const LU=(()=>{const c=$('#luc');const g=c.getContext('webgl',{premultipliedAlpha:true,alpha:true});if(!g)return null;
+  const FS=/*PORTRAIT_FS*/'';const VS2=`attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}`;
+  const sh=(t,s)=>{const x=g.createShader(t);g.shaderSource(x,s);g.compileShader(x);if(!g.getShaderParameter(x,g.COMPILE_STATUS))throw new Error(g.getShaderInfoLog(x));return x};
+  const p=g.createProgram();g.attachShader(p,sh(g.VERTEX_SHADER,VS2));g.attachShader(p,sh(g.FRAGMENT_SHADER,FS));g.linkProgram(p);g.useProgram(p);
+  const b=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,b);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),g.STATIC_DRAW);const l=g.getAttribLocation(p,'p');g.enableVertexAttribArray(l);g.vertexAttribPointer(l,2,g.FLOAT,false,0,0);
+  const u={};for(const n of['T','M1','M2','R','time','tilt','breath','blink','mouth','hairLag','turn','look'])u[n]=g.getUniformLocation(p,n);
+  const tex=(src,unit,pm)=>new Promise(res=>{const im=new Image();im.onload=()=>{const t=g.createTexture();g.activeTexture(g.TEXTURE0+unit);g.bindTexture(g.TEXTURE_2D,t);g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL,pm);g.pixelStorei(g.UNPACK_COLORSPACE_CONVERSION_WEBGL,pm?g.BROWSER_DEFAULT_WEBGL:g.NONE);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,im);
+    for(const [k,v] of[[g.TEXTURE_MIN_FILTER,g.LINEAR],[g.TEXTURE_MAG_FILTER,g.LINEAR],[g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE],[g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE]])g.texParameteri(g.TEXTURE_2D,k,v);res()};im.src=src});
+  g.uniform1i(u.T,0);g.uniform1i(u.M1,1);g.uniform1i(u.M2,2);g.uniform2f(u.R,720,1080);
+  const S={turn:[0,0],tt:[0,0],look:[0,0],tl:[0,0],tilt:0,blink:0,bt:2,bp:-1,mouth:0,syl:0,lag:0,pt:0,t:0,tint:[1,1,1]};
+  const ready=Promise.all([tex(A.lu_girl,0,true),tex(A.lu_m1,1,false),tex(A.lu_m2,2,false)]);
+  function draw(dt,mx,my){S.t+=dt;const w=S.t*.23;S.tt=[mx*.45+Math.sin(w*1.3)*.15,my*.25+Math.sin(w*.9+1)*.08];S.tl=[S.tt[0]*1.4,S.tt[1]];
+    const k=1-Math.pow(.004,dt);for(let i=0;i<2;i++){S.turn[i]+=(S.tt[i]-S.turn[i])*k;S.look[i]+=(S.tl[i]-S.look[i])*k}S.tilt+=(-S.turn[0]*.06-S.tilt)*k;
+    const vel=(S.turn[0]-S.pt)/Math.max(dt,1e-3);S.pt=S.turn[0];S.lag+=(clamp(-vel*.08,-.5,.5)-S.lag)*(1-Math.pow(.02,dt));
+    S.bt-=dt;if(S.bt<=0&&S.bp<0){S.bp=0;S.bt=2.4+Math.random()*3}if(S.bp>=0){S.bp+=dt/.16;S.blink=S.bp<1?S.bp:Math.max(0,2-S.bp);if(S.bp>=2){S.bp=-1;S.blink=0}}
+    S.syl*=Math.pow(.0005,dt);S.mouth+=(Math.min(1,S.syl*1.25)-S.mouth)*(1-Math.pow(1e-6,dt));
+    g.viewport(0,0,720,1080);g.clearColor(0,0,0,0);g.clear(g.COLOR_BUFFER_BIT);g.uniform1f(u.time,S.t);g.uniform1f(u.tilt,S.tilt);g.uniform1f(u.breath,Math.sin(S.t*1.5)*.5+.5);g.uniform1f(u.blink,S.blink);g.uniform1f(u.mouth,S.mouth);g.uniform1f(u.hairLag,S.lag);g.uniform2f(u.turn,S.turn[0],S.turn[1]);g.uniform2f(u.look,S.look[0],S.look[1]);g.drawArrays(g.TRIANGLE_STRIP,0,4)}
+  return{draw,S,ready}})();
+
+/* ---------------- voice ---------------- */
+const VO={ctx:null,on:true,base:430};const FORM=[[800,1150],[400,1600],[300,2300],[450,800],[350,700]];
+function voInit(){if(VO.ctx)return;try{VO.ctx=new (window.AudioContext||window.webkitAudioContext)();VO.out=VO.ctx.createGain();VO.out.gain.value=.9;VO.out.connect(VO.ctx.destination)}catch(e){VO.ctx=null}}
+function syllable(ch,q){const A_=VO.ctx;if(!A_||!VO.on)return;const c=ch.charCodeAt(0),t=A_.currentTime;const f0=VO.base*(1+((c%7)-3)*.035)*(q?1.12:1);const fm=FORM[c%5];
+  const gn=A_.createGain();gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(.16,t+.012);gn.gain.exponentialRampToValueAtTime(.001,t+.085);gn.connect(VO.out);
+  for(const [type,mul,vol] of[['sawtooth',1,1],['triangle',2,.4]]){const o=A_.createOscillator();o.type=type;o.frequency.setValueAtTime(f0*mul,t);o.frequency.exponentialRampToValueAtTime(f0*mul*(q?1.08:.94),t+.08);
+    const v=A_.createGain();v.gain.value=vol;o.connect(v);for(const [ff,qq] of[[fm[0],6],[fm[1],9]]){const bp=A_.createBiquadFilter();bp.type='bandpass';bp.frequency.value=ff;bp.Q.value=qq;v.connect(bp);bp.connect(gn)}o.start(t);o.stop(t+.1)}}
+
+/* ---------------- dialogue ---------------- */
+let DQ=null;
+function say(lines){return new Promise(res=>{const d=$('#dlg'),t=$('#dt'),o=$('#dopts');let i=0;d.style.display='block';$('#hand').classList.add('down');
+  const next=()=>{if(i>=lines.length){d.style.display='none';DQ=null;$('#hand').classList.remove('down');res(null);return}const L=lines[i++];o.innerHTML='';
+    const who=L.who||null;d.classList.toggle('mono',!who);const text=L.text||L;let k=0;t.textContent='';$('#dnext').hidden=!!L.choices;
+    const q=/？$/.test(text);clearInterval(DQ&&DQ.iv);const iv=setInterval(()=>{const ch=text[k];k++;t.textContent=text.slice(0,k);if(who&&ch&&!/[，。？！、…—\s「」]/.test(ch)){LU&&(LU.S.syl=1);syllable(ch,q&&k>text.length-4)}if(k>=text.length){clearInterval(iv);if(L.choices)showChoices(L)}},who?78:42);
+    DQ={iv,skip:()=>{if(k<text.length){k=text.length;t.textContent=text;clearInterval(iv);if(L.choices)showChoices(L);return}if(!L.choices)next()}};
+    function showChoices(L){o.innerHTML='';L.choices.forEach((c,ci)=>{const b=document.createElement('button');b.textContent=c.label;b.onclick=e=>{e.stopPropagation();lines.splice(i,0,...c.then);next()};o.appendChild(b)});setTimeout(()=>o.firstChild&&o.firstChild.focus(),30)}};
+  next()})}
+$('#dlg').addEventListener('click',()=>DQ&&DQ.skip());
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((k==='e'||k===' '||k==='enter')&&DQ&&$('#dlg').style.display==='block'&&!$('#dopts').children.length){e.preventDefault();DQ.skip()}else if(k==='e'&&!DQ&&SC[ST.scene].npc&&!ST.busy){talkLu()}});
+async function talkLu(){if(ST.busy)return;ST.busy=true;$('#talkTip').hidden=true;
+  const L=t=>({who:'小路',text:t});
+  if(!ST.metLu){ST.metLu=true;await say(['桥边蹲着一个戴草帽的小女孩，正盯着水里看。',L('嘘——有鱼。'),{who:'小路',text:'你也是从城里来的吧？我看你一直在看那座桥。',choices:[
+    {label:'刚下车，第一次来。',then:[L('那你肯定还没去过山顶。等天晴了，我带你去看整个村子。')]},
+    {label:'这座桥很老了吧？',then:[L('比我爷爷还老！桥那边就是我们学校，下课铃一响，全村都听得见。')]}]},L('我叫小路。你明天还在的话，来学校找我。')]);renderHand()}
+  else await say([L(['溪里的鱼又跑了。','你去过山顶了吗？','下午放学，我在这里等你。'][Math.floor(Math.random()*3)])]);
+  ST.busy=false;if(SC[ST.scene].npc)$('#talkTip').hidden=false}
+$('#lu').addEventListener('click',talkLu);$('#lu').addEventListener('keydown',e=>{if(e.key==='Enter')talkLu()});$('#talkTip').addEventListener('click',talkLu);
+
+/* ---------------- hand of location cards ---------------- */
+function renderHand(){const h=$('#hand');h.innerHTML='';const n=SC.length;SC.forEach((s,i)=>{const b=document.createElement('button');b.className='card'+(i===ST.scene?' here':'');b.setAttribute('role','listitem');b.setAttribute('aria-label','前往'+s.name);
+  const rot=(i-(n-1)/2)*2.2,lift=Math.abs(i-(n-1)/2)*3;b.style.transform=`translateY(${lift}px) rotate(${rot}deg)`;
+  b.innerHTML=`<img src="${A['th_'+s.key]}" alt=""><b>${s.name}</b><span>${s.desc}</span>`+(s.npc&&ST.metLu?`<i class="who" style="background-image:url(${A.lu_face})"></i>`:'');
+  b.onclick=()=>travel(i);h.appendChild(b)})}
+let snapPending=false;
+async function travel(i){if(i===ST.scene||ST.busy)return;ST.busy=true;voInit();snapPending=true;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  ST.scene=i;setScene(i);fxReset();const pv=$('#prev');pv.style.transition='none';pv.style.opacity=1;pv.style.filter='none';requestAnimationFrame(()=>{pv.style.transition='';pv.style.opacity=0;pv.style.filter='blur(6px)'});
+  $('#placeName').textContent=SC[i].name;const hg=$('#hang');hg.classList.remove('swing');void hg.offsetWidth;hg.classList.add('swing');
+  $('#arriveT').textContent=SC[i].name;$('#arriveS').textContent='乡野村 · '+TOD[Math.round(ST.tod)];$('#arrive').style.opacity=1;setTimeout(()=>$('#arrive').style.opacity=0,1500);
+  $('#lu').classList.toggle('on',!!SC[i].npc);$('#talkTip').hidden=!SC[i].npc;$('#hint').style.opacity=0;renderHand();
+  await new Promise(r=>setTimeout(r,900));ST.busy=false;if(SC[i].npc&&!ST.metLu){await new Promise(r=>setTimeout(r,500));talkLu()}}
+function advanceTime(){ST.tod=(Math.round(ST.tod)+1)%4;$('#whenT').textContent='春 · '+TOD[ST.tod];
+  $('#dialHand').setAttribute('transform',`rotate(${[0,45,90,180][ST.tod]} 46 46)`)}
+$('#bTime').onclick=$('#dial').onclick=$('#when').onclick=advanceTime;
+$('#bSnd').onclick=()=>{VO.on=!VO.on;$('#bSnd').setAttribute('aria-pressed',String(!VO.on));$('#bSnd').setAttribute('aria-label',VO.on?'静音':'打开声音');$('#wave').style.display=VO.on?'':'none'};
+
+/* ---------------- loop ---------------- */
+let last=performance.now(),T=0;
+function frame(now){const dt=clamp((now-last)/1000,0,.05);last=now;T+=dt;
+  MOUSE.x+=(MOUSE.tx-MOUSE.x)*(1-Math.pow(.05,dt));MOUSE.y+=(MOUSE.ty-MOUSE.y)*(1-Math.pow(.05,dt));
+  ST.todF+=(ST.tod-ST.todF)*(1-Math.pow(.15,dt));if(ST.tod===0&&ST.todF>2.9)ST.todF=0;
+  OFF=[Math.sin(T*.021)*.012,Math.cos(T*.017)*.008];
+  if(snapPending){const pv=$('#prev');const c=pv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.drawImage(cv,0,0,pv.width,pv.height);c.drawImage($('#fx'),0,0,pv.width,pv.height);snapPending=false}
+  gl.uniform1f(U.time,T);gl.uniform1f(U.tod,ST.todF);gl.uniform2f(U.off,OFF[0],OFF[1]);gl.uniform2f(U.mouse,-MOUSE.x,-MOUSE.y*.6);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  if(snapPending===false&&window.__snapNow){window.__snapNow=false}
+  fxStep(dt);
+  if(LU&&SC[ST.scene].npc){LU.draw(dt,MOUSE.x,MOUSE.y);const lu=$('#lu').getBoundingClientRect();const tip=$('#talkTip');tip.style.left=(lu.left+lu.width*.55)+'px';tip.style.top=(lu.top+lu.height*.06)+'px';
+    const tint=[[1,1,1],[1.03,1.03,1.03],[1.05,.88,.74],[.45,.5,.68]][ST.tod];$('#luc').style.filter=`brightness(${(tint[0]+tint[1]+tint[2])/3}) sepia(${ST.tod===2?.25:0}) hue-rotate(${ST.tod===3?-12:0}deg) saturate(${ST.tod===3?.75:1})`}
+  requestAnimationFrame(frame)}
+
+/* ---------------- boot ---------------- */
+$('#title').style.backgroundImage=`url(${A.th_big})`;$('#dface').style.backgroundImage=`url(${A.lu_face})`;
+Promise.all(SC.map(async s=>({img:await loadTex(A['img_'+s.key]),msk:await loadTex(A['msk_'+s.key])}))).then(async t=>{TEX.push(...t);LU&&await LU.ready;resize();setScene(0);fxReset();renderHand();requestAnimationFrame(frame);
+  $('#go').disabled=false;$('#load').textContent='准备好了'}).catch(e=>fail('素材没有加载成功，请刷新页面再试一次。'));
+$('#go').onclick=()=>{voInit();$('#title').style.transition='opacity .8s';$('#title').style.opacity=0;setTimeout(()=>$('#title').hidden=true,800);$('#hud').hidden=false;
+  $('#arriveT').textContent=SC[0].name;$('#arriveS').textContent='乡野村 · 上午';$('#arrive').style.opacity=1;setTimeout(()=>$('#arrive').style.opacity=0,1800);setTimeout(()=>{$('#hint').style.opacity=0},12000)};
+window.__dbg={ST,travel,advanceTime,SC,talkLu};
+</script>

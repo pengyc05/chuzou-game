@@ -4,3 +4,4 @@ __pycache__/
 Thumbs.db
 node_modules/
 game/xiangye-3d/dist/index.offline.html
+assets/processed/scenes/_check.png

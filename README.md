@@ -2,13 +2,14 @@
 
 一个小镇青年逃离重复的工作，一路打零工、看风景，在别人的人生里找到自己想要的生活。日系手绘风格的叙事卡牌游戏，计划上架 Steam。
 
-![四季的乡野村（3D 试走版截图）](docs/screenshots/four_seasons.png)
+![卡牌版：石桥小溪遇见小路](docs/screenshots/cards_shiqiao.png)
 
 ## 目前进度
 
 | 部分 | 状态 |
 | --- | --- |
 | 游戏形式 | 已定为叙事卡牌：Gemini 场景插画 + 动态立绘（见 `game/live-portrait-demo/`） |
+| 第一章「乡野村」卡牌版 | 第一个画面已完成：9 个地点可切换、场景会动、四个时段、石桥小溪遇见小路（`game/xiangye-cards/`） |
 | 第一章「乡野村」3D 试走 | 已暂停，保留作场景参考 |
 | 界面 | C 方案「乡间木牌」已定稿并实现 |
 | 序章「灰色小镇」 | 只有早期 2D 原型（`game/prototype-2d/`），卡牌版未开始 |
@@ -19,7 +20,14 @@
 
 ## 怎么运行
 
-最快：直接用 Chrome 打开 `game/xiangye-3d/dist/index.html`（需要联网加载 3D 引擎）。
+卡牌版：直接用 Chrome 打开 `game/xiangye-cards/index.html`（不需要联网）。改了源码或场景图后：
+
+```bash
+python3 game/xiangye-cards/tools/make_masks.py   # 场景图 → 动画用的遮罩（水/草木/天空）和缩略图
+python3 game/xiangye-cards/tools/build.py        # → game/xiangye-cards/index.html
+```
+
+3D 试走版（已暂停）：用 Chrome 打开 `game/xiangye-3d/dist/index.html`（需要联网加载 3D 引擎）。
 
 改了代码或素材之后重新生成：
 
@@ -37,7 +45,9 @@ WASD 走路 · Shift 跑 · 拖动鼠标转视角 · 滚轮远近 · E 互动 ·
 ## 目录
 
 ```
-game/xiangye-3d/        第一章 3D 版（three.js r160）
+game/xiangye-cards/     第一章卡牌版（当前主线）：场景着色器、粒子、地点卡、小路对话
+game/live-portrait-demo/ 动态立绘（小路）
+game/xiangye-3d/        第一章 3D 版（已暂停）（three.js r160）
   index.src.html        游戏源码（单文件：场景、角色、界面、着色器）
   tools/                素材处理和打包脚本
   vendor/               three.js（MIT）

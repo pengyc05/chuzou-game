@@ -15,7 +15,12 @@ The single source of truth for design is the claude.ai doc 「《出走》策划
 - Chapter 1 is a mountain village named 乡野村 (田园、小溪、学校、山、草木) with four seasons; staying longer moves the seasons on. Player can stay several days; jobs refresh daily. Hero name is chosen at the start (default 陈默). Game title: 《出走》.
 - Not decided yet: the villagers (who lives in 乡野村), their jobs/stories, the card rules, whether the prologue keeps the "repeat the same day" loop.
 
-## How the 3D page is built
+## How the card page is built (main line)
+- Edit `game/xiangye-cards/index.src.html`, then `python3 game/xiangye-cards/tools/build.py` → `index.html` (all images inlined; the 小路 portrait shader is copied from `game/live-portrait-demo/index.src.html`).
+- `tools/make_masks.py` makes per-scene masks (R water, G plants, B sky) + thumbs into `assets/processed/scenes/`; water polygons and sky limits are hand-tuned per scene there.
+- `SC` lists the 9 locations (particle kind, light rays, cloud shadow, fog band, special sway rects in 1024x572 image coords). Time of day `ST.tod` 0–3 (上午/中午/傍晚/夜晚) is graded in the scene shader.
+
+## How the 3D page is built (paused)
 - Edit `game/xiangye-3d/index.src.html`; never edit `dist/`. `/*ASSETS*/` is replaced by `assets.json` at build time.
 - Terrain height `H(x,z)`, collision `blocked(x,z)`, paths `ALLPATHS`, fields `FIELDS`, houses `HOUSES`.
 - Stylized parts: `TM()` toon material, `ink()` edge lines, `hull()` character outlines, `HERO` procedural walk, `Foliage()` leaf-card trees, `GRASS` (player-following patch over a baked heightmap `HM`), `RICE` (seasonal rows in fields).
