@@ -10,5 +10,6 @@ bg = Image.new("RGBA", face.size, (255,247,230,255)); bg.alpha_composite(face)
 b = io.BytesIO(); bg.convert("RGB").save(b, "JPEG", quality=88)
 A = {"lu_face": "data:image/jpeg;base64,"+base64.b64encode(b.getvalue()).decode(),
      "shiqiao": "data:image/jpeg;base64,"+base64.b64encode((ROOT/"assets/processed/scenes/shiqiao.jpg").read_bytes()).decode()}
+A.update(json.loads((ROOT/"assets/processed/topdown/sprites.json").read_text()))
 page = (HERE/"index.src.html").read_text().replace("/*ASSETS*/", "const A="+json.dumps(A)+";")
 (HERE/"index.html").write_text(page); print("ok", round(len(page)/1e6,2), "MB")
